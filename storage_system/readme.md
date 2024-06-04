@@ -1,4 +1,4 @@
-## Star Mode
+## Star Architecture
 
 ![Star Mode](star_mode.png)
 
