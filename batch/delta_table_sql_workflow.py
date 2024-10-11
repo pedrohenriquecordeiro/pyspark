@@ -3,41 +3,47 @@ from pyspark.sql import SparkSession
 
 # Create a SparkSession object and enable Delta Lake functionality
 spark = SparkSession.builder \
-    .appName("S3 to Delta Table with SQL Transformations") \
+    .appName("") \
     .config("spark.jars.packages", "io.delta:delta-core_2.12:1.0.0") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
 
 # Define the S3 bucket paths (input and output)
-input_bucket = "s3a://your-input-bucket-name/input-data/"
+input_bucket_1 = "s3a://your-input-bucket-name/input-data-1/"
+input_bucket_2 = "s3a://your-input-bucket-name/input-data-2/"
 delta_table_path = "s3a://your-output-bucket-name/delta-table/"
 
-# Read data from the input S3 bucket (assuming the data is in CSV format)
-df = spark.read.csv(input_bucket, header=True, inferSchema=True)
+# Read data from the first S3 bucket (assuming the data is in CSV format)
+df1 = spark.read.csv(input_bucket_1, header=True, inferSchema=True)
 
-# Register the dataframe as a temporary SQL table to perform SQL transformations
-df.createOrReplaceTempView("temp_table")
+# Read data from the second S3 bucket (assuming the data is in CSV format)
+df2 = spark.read.csv(input_bucket_2, header=True, inferSchema=True)
 
-# SQL query to perform several transformations
-# - Select specific columns
-# - Rename columns
-# - Filter out rows with null values in a specific column
-# - Perform aggregations such as average and sum
+# Register both dataframes as temporary SQL tables to perform SQL transformations
+df1.createOrReplaceTempView("table1")
+df2.createOrReplaceTempView("table2")
+
+# SQL query to perform join and several transformations
+# - Join table1 and table2 on a common column (e.g., column_id)
+# - Select specific columns from both tables
+# - Apply transformations like renaming and filtering
 transformed_df = spark.sql("""
     SELECT 
-        column1 AS new_column1,           -- Rename column1 to new_column1
-        column2,                          -- Select column2 as is
-        UPPER(column3) AS column3_upper,  -- Convert values in column3 to uppercase
-        AVG(column4) OVER() AS avg_column4, -- Calculate the average of column4
-        SUM(column5) OVER() AS total_column5 -- Calculate the total sum of column5
+        t1.column_id AS id,                    -- Renaming column_id from table1 to id
+        t1.column1 AS table1_column1,          -- Selecting column1 from table1
+        t2.column2 AS table2_column2,          -- Selecting column2 from table2
+        t1.column3 + t2.column4 AS combined_column,  -- Performing a calculation between columns of the two tables
+        UPPER(t1.column5) AS column5_upper     -- Uppercase transformation on a column from table1
     FROM 
-        temp_table
+        table1 t1
+        INNER JOIN table2 t2
+            ON t1.column_id = t2.column_id     -- Joining the two tables on column_id
     WHERE 
-        column1 IS NOT NULL               -- Filter out rows where column1 is null
+        t1.column1 IS NOT NULL                 -- Filtering out rows where column1 is null in table1
 """)
 
-# Show the transformed data to ensure transformations were applied correctly
+# Show the transformed data to ensure transformations and join were applied correctly
 transformed_df.show(5)  # Display the first 5 rows of the transformed dataset
 
 # Write the transformed dataframe to the Delta table
