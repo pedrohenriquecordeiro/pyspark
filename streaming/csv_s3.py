@@ -4,7 +4,7 @@ from pyspark.sql.functions import col
 
 # Create a SparkSession object and enable Delta Lake functionality
 spark = SparkSession.builder \
-    .appName("CSV to Delta Table with Streaming") \
+    .appName("") \
     .config("spark.jars.packages", "io.delta:delta-core_2.12:1.0.0") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
